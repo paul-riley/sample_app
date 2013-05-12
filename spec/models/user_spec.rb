@@ -68,7 +68,7 @@ describe User do
   describe "when email format is invalid" do
     it "should be invalid" do
       addresses = %w[user@foo,com user_at_foo.org example.user@foo.
-                     foo@bar_baz.com foo@bar+baz.com]
+                     foo@bar_baz.com]
       addresses.each do |invalid_address|
         @user.email = invalid_address
         @user.should_not be_valid
@@ -78,7 +78,7 @@ describe User do
 
   describe "when email format is valid" do
     it "should be valid" do
-      addresses = %w[user@foo.COM A_US-ER@f.b.org frst.lst@foo.jp a+b@baz.cn]
+      addresses = %w[user@foo.COM A_US-ER@f.b.org frst.lst@foo.jp ab@baz.cn]
       addresses.each do |valid_address|
         @user.email = valid_address
         @user.should be_valid
@@ -199,4 +199,37 @@ describe User do
       its(:followed_users) { should_not include(other_user) }
     end
   end
-end
+  describe "user relationships associations" do
+    let (:other_user) { FactoryGirl.create(:user) }
+    let (:another_user) { FactoryGirl.create(:user) }
+
+    before do
+      @user.save
+      @user.follow!(other_user)
+      @user.follow!(another_user)
+      other_user.follow!(@user)
+      other_user.follow!(another_user)
+      another_user.follow!(@user)
+      another_user.follow!(other_user)
+    end
+
+    its(:followed_users) { should include(other_user) }
+    its(:followers) { should include(another_user) }
+
+    it "should destroy associated followers" do
+      followers = @user.followers
+      @user.destroy
+      followers.each do |follower|
+        follower.followed_users.should_not include(@user)
+      end
+    end
+
+    it "should destroy associated followed users" do
+      followed_users = @user.followed_users
+      @user.destroy
+      followed_users.each do |followed_user|
+        followed_user.followers.should_not include(@user)
+      end
+    end
+  end
+ end 
