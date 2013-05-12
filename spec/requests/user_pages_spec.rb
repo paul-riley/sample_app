@@ -116,6 +116,29 @@ describe "follow/unfollow buttons" do
       end
     end
 
+
+    describe "display user stats correctly" do
+      let(:other_user) { FactoryGirl.create(:user) }
+      before do
+        user.follow!(other_user)
+        other_user.follow!(user)
+        visit user_path(user)
+      end
+
+      it { should have_selector('strong#following', text:'1') }
+      it { should have_selector('strong#followers', text:'1') }
+
+      describe "after unfollowing other user" do
+        before { user.unfollow!(other_user); visit user_path(user) }
+        it { should have_selector('strong#following', text: '0') }
+      end
+
+      describe "after unfollowed by another user" do
+        before { other_user.unfollow!(user); visit user_path(user) }
+        it { should have_selector('strong#followers', text: '0') }
+      end
+    end
+
     describe "microposts" do
       it { should have_content(m1.content) }
       it { should have_content(m2.content) }
